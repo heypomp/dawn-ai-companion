@@ -1,3 +1,15 @@
+-- 删除整个 public schema，包括所有表、视图、触发器、函数等
+DROP SCHEMA public CASCADE;
+
+-- 重新创建 public schema
+CREATE SCHEMA public;
+
+-- 设置权限（恢复 Supabase 默认配置）
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO public;
+
+--------------------------------
+
 -- 创建订单表
 CREATE TABLE IF NOT EXISTS orders (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -96,5 +108,23 @@ CREATE POLICY "Users can view own orders" ON orders
 CREATE POLICY "Users can view own subscription" ON user_subscriptions
     FOR SELECT USING (auth.uid() = user_id);
 
--- webhook_events 表只允许服务端访问（使用 service role）
--- 不创建任何策略，默认拒绝所有客户端访问
+-- 注意：service role key 会自动绕过 RLS，不需要额外的策略
+-- webhook_events 表不创建任何用户策略，只允许 service role 访问
+
+-- 授予表权限给 Supabase 角色（重要！）
+GRANT ALL ON TABLE orders TO authenticated;
+GRANT ALL ON TABLE orders TO anon;
+GRANT ALL ON TABLE orders TO service_role;
+
+GRANT ALL ON TABLE user_subscriptions TO authenticated;
+GRANT ALL ON TABLE user_subscriptions TO anon;
+GRANT ALL ON TABLE user_subscriptions TO service_role;
+
+GRANT ALL ON TABLE webhook_events TO authenticated;
+GRANT ALL ON TABLE webhook_events TO anon;
+GRANT ALL ON TABLE webhook_events TO service_role;
+
+-- 授予序列权限（用于自动生成 ID）
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO anon;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO service_role;

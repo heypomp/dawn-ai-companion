@@ -13,8 +13,22 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 const webhookSecret = process.env.CREEM_WEBHOOK_SECRET!
 
-// Supabase 管理员客户端
-const supabase = createClient(supabaseUrl, serviceKey)
+// Supabase 管理员客户端 - 使用 service role key 绕过 RLS
+const supabase = createClient(supabaseUrl, serviceKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  },
+  db: {
+    schema: 'public'
+  },
+  global: {
+    headers: {
+      'x-use-service-role': 'true'  // 明确使用 service role
+    }
+  }
+})
 
 // 将分转换为元
 function centsToAmount(cents: number): number {
